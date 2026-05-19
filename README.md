@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 📚 Book Reading Log
 A simple, clean, and incredibly fast web application for book lovers to track their reading journey. Log progress page-by-page, organize your library with genres and tags, visualize your reading habits, and export your data — all without a single page reload.
  Stack 
@@ -7,6 +8,11 @@ A simple, clean, and incredibly fast web application for book lovers to track th
  Stack 
 
  Stack 
+=======
+Book Reading Log
+A simple, clean, and incredibly fast web application for book lovers to track their reading journey. Log progress page-by-page, organize your library with genres and tags, visualize your reading habits, and export your data — all without a single page reload.
+
+>>>>>>> d46442b549f2a2baa466ee08277e34ad2f86558a
 
  Stack 
 ✨ Features
@@ -20,6 +26,10 @@ A simple, clean, and incredibly fast web application for book lovers to track th
 📤 Import / Export — Back up your entire library as PDF or Word (.docx). Restore from structured documents.
 📱 Fully Responsive — 4-column desktop grid, 2-column tablet, single-column mobile — built with Tailwind CSS.
 🛠️ Tech Stack
+<<<<<<< HEAD
+=======
+
+>>>>>>> d46442b549f2a2baa466ee08277e34ad2f86558a
 Table
 Layer	Technology
 Framework	Next.js 15 (App Router)
@@ -33,6 +43,7 @@ Validation	Zod
 Data Fetching	SWR
 Export	Puppeteer (PDF) / docx (Word)
 🚀 Getting Started
+<<<<<<< HEAD
 Prerequisites
 Node.js 18+
 PostgreSQL 15+ (local or cloud e.g. Neon, Supabase)
@@ -56,7 +67,10 @@ NEXTAUTH_URL="http://localhost:3000"
 Tip: Generate a secure secret with openssl rand -base64 32
 3. Database Setup
 bash
-Copy
+Copygit commit -m "Resolve merge conflict in README.md"
+=======
+
+>>>>>>> d46442b549f2a2baa466ee08277e34ad2f86558a
 # Run Prisma migrations
 npx prisma migrate dev --name init
 
@@ -118,6 +132,7 @@ book-reading-log/
 ├── tailwind.config.ts
 ├── tsconfig.json
 └── package.json
+<<<<<<< HEAD
 🎯 Core User Flow
 Register / Login → Secure session created
 Dashboard → View stats, filter by status, search your library
@@ -175,3 +190,5 @@ npx prisma db seed	Seed predefined genres & tags
 MIT — Built with ❤️ for book lovers everywhere.
 🙋 Questions or Feedback?
 Open an issue or reach out — happy reading! 📖
+=======
+>>>>>>> d46442b549f2a2baa466ee08277e34ad2f86558a
