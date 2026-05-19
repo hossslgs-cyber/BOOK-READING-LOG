@@ -28,30 +28,7 @@ Validation	Zod
 Data Fetching	SWR
 Export	Puppeteer (PDF) / docx (Word)
 🚀 Getting Started
-Prerequisites
-Node.js 18+
-PostgreSQL 15+ (local or cloud e.g. Neon, Supabase)
-pnpm (recommended) or npm / yarn
-1. Clone & Install
-bash
-Copy
-git clone https://github.com/yourusername/book-reading-log.git
-cd book-reading-log
-pnpm install
-2. Environment Variables
-Create a .env file in the project root:
-env
-Copy
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/booklog"
 
-# Auth.js
-NEXTAUTH_SECRET="your-random-secret-key-min-32-chars"
-NEXTAUTH_URL="http://localhost:3000"
-Tip: Generate a secure secret with openssl rand -base64 32
-3. Database Setup
-bash
-Copy
 # Run Prisma migrations
 npx prisma migrate dev --name init
 
