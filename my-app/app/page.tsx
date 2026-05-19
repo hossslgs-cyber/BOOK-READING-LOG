@@ -5,55 +5,7 @@ import FilterTabs from "./components/FilterTabs";
 import SearchBar from "./components/SearchBar";
 import BookCard from "./components/BookCard";
 import { BookStatusCounts, Book } from "./types";
-
-// Mock data for development - will be replaced with actual API calls
-const mockBooks: Book[] = [
-  {
-    id: "1",
-    title: "The Pragmatic Programmer",
-    author: "Andrew Hunt, David Thomas",
-    totalPages: 352,
-    pagesRead: 150,
-    status: "READING",
-    notes: "Great book about software development practices",
-    finishedAt: null,
-    droppedAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    genres: [{ id: "g1", name: "Non-Fiction" }, { id: "g2", name: "Technology" }],
-    tags: [{ id: "t1", name: "favorite" }, { id: "t2", name: "recommended" }],
-  },
-  {
-    id: "2",
-    title: "To Kill a Mockingbird",
-    author: "Harper Lee",
-    totalPages: 281,
-    pagesRead: 281,
-    status: "FINISHED",
-    notes: "Classic novel about racial injustice",
-    finishedAt: new Date(Date.now() - 86400000),
-    droppedAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    genres: [{ id: "g3", name: "Fiction" }, { id: "g4", name: "Classic" }],
-    tags: [{ id: "t3", name: "must-read" }, { id: "t4", name: "paperback" }],
-  },
-  {
-    id: "3",
-    title: "1984",
-    author: "George Orwell",
-    totalPages: 328,
-    pagesRead: 50,
-    status: "DROPPED",
-    notes: "Found it too dystopian for my taste",
-    finishedAt: null,
-    droppedAt: new Date(Date.now() - 172800000),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    genres: [{ id: "g5", name: "Fiction" }, { id: "g6", name: "Sci-Fi" }],
-    tags: [{ id: "t5", name: "re-read" }],
-  },
-];
+import { updateBook, deleteBook } from "@/lib/bookService";
 
 export default function Home() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -68,6 +20,7 @@ export default function Home() {
     "ALL" | "READING" | "FINISHED" | "DROPPED"
   >("ALL");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Calculate stats from books
   useEffect(() => {
@@ -104,11 +57,59 @@ export default function Home() {
     })
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
-  // Simulate loading data
+  // Simulate loading data - in a real app, this would fetch from API
   useEffect(() => {
     setLoading(true);
     // Simulate API delay
     const timer = setTimeout(() => {
+      // Mock data for development - will be replaced with actual API calls
+      const mockBooks: Book[] = [
+        {
+          id: "1",
+          title: "The Pragmatic Programmer",
+          author: "Andrew Hunt, David Thomas",
+          totalPages: 352,
+          pagesRead: 150,
+          status: "READING",
+          notes: "Great book about software development practices",
+          finishedAt: null,
+          droppedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          genres: [{ id: "g1", name: "Non-Fiction" }, { id: "g2", name: "Technology" }],
+          tags: [{ id: "t1", name: "favorite" }, { id: "t2", name: "recommended" }],
+        },
+        {
+          id: "2",
+          title: "To Kill a Mockingbird",
+          author: "Harper Lee",
+          totalPages: 281,
+          pagesRead: 281,
+          status: "FINISHED",
+          notes: "Classic novel about racial injustice",
+          finishedAt: new Date(Date.now() - 86400000),
+          droppedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          genres: [{ id: "g3", name: "Fiction" }, { id: "g4", name: "Classic" }],
+          tags: [{ id: "t3", name: "must-read" }, { id: "t4", name: "paperback" }],
+        },
+        {
+          id: "3",
+          title: "1984",
+          author: "George Orwell",
+          totalPages: 328,
+          pagesRead: 50,
+          status: "DROPPED",
+          notes: "Found it too dystopian for my taste",
+          finishedAt: null,
+          droppedAt: new Date(Date.now() - 172800000),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          genres: [{ id: "g5", name: "Fiction" }, { id: "g6", name: "Sci-Fi" }],
+          tags: [{ id: "t5", name: "re-read" }],
+        },
+      ];
       setBooks(mockBooks);
       setLoading(false);
     }, 500);
@@ -118,17 +119,27 @@ export default function Home() {
   const handleUpdateBook = async (
     updates: Partial<Book> & { id: string }
   ) => {
-    // In a real app, this would make an API call
-    setBooks((prev) =>
-      prev.map((book) =>
-        book.id === updates.id ? { ...book, ...updates } : book
-      )
-    );
+    try {
+      const updatedBook = await updateBook(updates.id, updates);
+      setBooks((prev) =>
+        prev.map((book) =>
+          book.id === updatedBook.id ? updatedBook : book
+        )
+      );
+    } catch (err) {
+      setError("Failed to update book");
+      console.error(err);
+    }
   };
 
   const handleDeleteBook = async (id: string) => {
-    // In a real app, this would make an API call
-    setBooks((prev) => prev.filter((book) => book.id !== id));
+    try {
+      await deleteBook(id);
+      setBooks((prev) => prev.filter((book) => book.id !== id));
+    } catch (err) {
+      setError("Failed to delete book");
+      console.error(err);
+    }
   };
 
   if (loading) {
@@ -136,6 +147,16 @@ export default function Home() {
       <div className="min-h-screen flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         <p className="mt-4 text-zinc-500">Loading your library...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center py-12">
+        <div className="bg-red-50 text-red-100 border-l-4 border-red-500 p-4">
+          <p className="text-red-700">{error}</p>
+        </div>
       </div>
     );
   }
@@ -179,8 +200,6 @@ export default function Home() {
                 <BookCard
                   key={book.id}
                   book={book}
-                  onUpdate={handleUpdateBook}
-                  onDelete={handleDeleteBook}
                 />
               ))}
             </div>
