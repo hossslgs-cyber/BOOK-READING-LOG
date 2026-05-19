@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/supabase/getUser";
+import { createBook, getBooks } from "@/lib/supabase/db";
 
 const REQUIRED_FIELDS = ["title", "author"];
 
@@ -43,6 +43,12 @@ export async function POST(request: Request) {
     const text = await file.text();
     const entries = parseStructuredText(text);
 
+    // Get existing books to avoid duplicates
+    const { books: existingBooks } = await getBooks(userId, { limit: 9999 });
+    const existingTitles = new Set(
+      existingBooks.map((b) => `${b.title}|${b.author}`.toLowerCase())
+    );
+
     const result = { success: 0, errors: [] as string[] };
 
     for (const entry of entries) {
@@ -52,10 +58,8 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const existing = await prisma.book.findFirst({
-        where: { title: entry.title, author: entry.author, userId },
-      });
-      if (existing) {
+      const key = `${entry.title}|${entry.author}`.toLowerCase();
+      if (existingTitles.has(key)) {
         result.errors.push(`"${entry.title}" already exists`);
         continue;
       }
@@ -69,38 +73,28 @@ export async function POST(request: Request) {
 
       const totalPages = parseInt(entry.totalpages ?? entry.pages, 10) || null;
       const pagesRead = parseInt(entry.pagesread ?? "0", 10) || 0;
-      const status = (entry.status?.toUpperCase() ?? "READING") as "READING" | "FINISHED" | "DROPPED";
+      const status = (entry.status?.toUpperCase() ?? "READING") as string;
 
-      await prisma.book.create({
-        data: {
-          title: entry.title,
-          author: entry.author,
-          totalPages,
-          pagesRead,
-          status: ["READING", "FINISHED", "DROPPED"].includes(status) ? status : "READING",
-          notes: entry.notes ?? null,
-          userId,
-          source: "imported",
-          genres: {
-            connectOrCreate: genres.map((name: string) => ({
-              where: { userId_name: { userId, name } },
-              create: { name, userId },
-            })),
-          },
-          tags: {
-            connectOrCreate: tags.map((name: string) => ({
-              where: { userId_name: { userId, name } },
-              create: { name, userId },
-            })),
-          },
-        },
+      await createBook(userId, {
+        title: entry.title,
+        author: entry.author,
+        totalPages,
+        status: ["READING", "FINISHED", "DROPPED"].includes(status) ? status : "READING",
+        notes: entry.notes ?? null,
+        genres,
+        tags,
+        source: "imported",
       });
       result.success++;
+      existingTitles.add(key);
     }
 
     return NextResponse.json(result);
   } catch (error) {
     console.error("Error importing books:", error);
-    return NextResponse.json({ error: "Failed to import" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to import" },
+      { status: 500 }
+    );
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { collectBooksFromInternet } from "@/lib/bookCollector";
 import { getUserId } from "@/lib/supabase/getUser";
+import { createBook, getBooks } from "@/lib/supabase/db";
 
 export async function POST(request: Request) {
   try {
@@ -10,30 +10,25 @@ export async function POST(request: Request) {
 
     const collected = await collectBooksFromInternet(userId, count);
 
+    // Get existing books to avoid duplicates
+    const { books: existing } = await getBooks(userId, { limit: 9999 });
+    const existingTitles = new Set(
+      existing.map((b) => `${b.title}|${b.author}`.toLowerCase())
+    );
+
     let added = 0;
     for (const book of collected) {
-      const existing = await prisma.book.findFirst({
-        where: { title: book.title, author: book.author, userId },
-      });
-      if (existing) continue;
+      const key = `${book.title}|${book.author}`.toLowerCase();
+      if (existingTitles.has(key)) continue;
 
-      const genres = book.genres.map((name: string) => ({
-        where: { userId_name: { userId, name } },
-        create: { name, userId },
-      }));
-
-      await prisma.book.create({
-        data: {
-          title: book.title,
-          author: book.author,
-          totalPages: book.totalPages,
-          pagesRead: 0,
-          status: "READING",
-          notes: book.description.slice(0, 500),
-          userId,
-          source: "ai_collected",
-          genres: { connectOrCreate: genres },
-        },
+      await createBook(userId, {
+        title: book.title,
+        author: book.author,
+        totalPages: book.totalPages,
+        notes: book.description.slice(0, 500),
+        genres: book.genres,
+        status: "READING",
+        source: "ai_collected",
       });
       added++;
     }

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import PDFDocument from "pdfkit";
 import {
   Document as WordDoc,
@@ -11,6 +10,7 @@ import {
   TextRun,
 } from "docx";
 import { getUserId } from "@/lib/supabase/getUser";
+import { getBooksExport } from "@/lib/supabase/db";
 
 export async function GET(request: Request) {
   try {
@@ -18,11 +18,7 @@ export async function GET(request: Request) {
     const format = searchParams.get("format") ?? "pdf";
     const userId = await getUserId();
 
-    const books = await prisma.book.findMany({
-      where: { userId },
-      include: { genres: true, tags: true },
-      orderBy: { updatedAt: "desc" },
-    });
+    const books = await getBooksExport(userId);
 
     if (format === "docx") {
       const doc = new WordDoc({
