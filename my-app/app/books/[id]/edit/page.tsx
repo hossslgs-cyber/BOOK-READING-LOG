@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import BookForm from "@/components/forms/BookForm";
 import { Book } from "@/types";
@@ -39,8 +41,8 @@ export default function EditBookPage({ params }: { params: { id: string } }) {
         pagesRead: mockBook.pagesRead,
         status: mockBook.status,
         notes: mockBook.notes,
-        genres: mockBook.genres.map(g => g.name),
-        tags: mockBook.tags.map(t => t.name),
+        genres: mockBook.genres.map(g => g.name) as any,
+        tags: mockBook.tags.map(t => t.name) as any,
       });
       setLoading(false);
     }, 500);

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Book } from "@/types";
 import { updateBook, deleteBook } from "@/lib/bookService";
@@ -148,7 +150,7 @@ export default function BookCard({ book }: BookCardProps) {
                 onClick={handleIncrement}
                 disabled={
                   isUpdating ||
-                  (book.totalPages && book.pagesRead >= book.totalPages)
+                  (book.totalPages != null && book.pagesRead >= book.totalPages)
                 }
                 className={`ml-2 h-8 w-8 flex items-center justify-center rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed`}
               >

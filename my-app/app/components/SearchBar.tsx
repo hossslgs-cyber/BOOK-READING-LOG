@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { debounce } from "@/lib/utils";
 
 interface SearchBarProps {
@@ -9,6 +11,7 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearchChange, onClearFilters }: SearchBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") ?? "");
 
@@ -21,7 +24,7 @@ export default function SearchBar({ onSearchChange, onClearFilters }: SearchBarP
       } else {
         params.delete("search");
       }
-      router.push(`${router.pathname}?${params.toString()}`);
+      router.push(`${pathname}?${params.toString()}`);
     }, 300);
 
     handler();
@@ -29,7 +32,7 @@ export default function SearchBar({ onSearchChange, onClearFilters }: SearchBarP
     return () => {
       handler.cancel();
     };
-  }, [searchTerm, router.pathname, searchParams, onSearchChange]);
+  }, [searchTerm, pathname, searchParams, onSearchChange]);
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -37,7 +40,7 @@ export default function SearchBar({ onSearchChange, onClearFilters }: SearchBarP
     const params = new URLSearchParams(searchParams);
     params.delete("search");
     params.delete("status");
-    router.push(`${router.pathname}?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   return (

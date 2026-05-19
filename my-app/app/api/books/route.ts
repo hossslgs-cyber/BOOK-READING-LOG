@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { getUserId } from "@/lib/supabase/getUser";
 
-const prisma = new PrismaClient();
-
-// GET /api/books - list books with filtering, search, pagination
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,10 +10,8 @@ export async function GET(request: Request) {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") as "READING" | "FINISHED" | "DROPPED" | null;
 
-    // Mock user ID - in a real app, this would come from authentication
-    const userId = "mock-user-id";
+    const userId = await getUserId();
 
-    // Build where clause
     const whereClause: any = {
       userId,
     };
@@ -67,16 +63,13 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/books - create a new book
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { title, author, totalPages, status, notes, genres, tags } = body;
 
-    // Mock user ID - in a real app, this would come from authentication
-    const userId = "mock-user-id";
+    const userId = await getUserId();
 
-    // Validate required fields
     if (!title || !author) {
       return NextResponse.json(
         { error: "Title and author are required" },
@@ -84,7 +77,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create the book
     const book = await prisma.book.create({
       data: {
         title,
@@ -95,20 +87,16 @@ export async function POST(request: Request) {
         notes: notes ?? null,
         userId,
         genres: {
-          connectOrCreate: genres
-            ?.map((genreName: string) => ({
-              where: { userId_name: { userId, name: genreName } },
-              create: { name: genreName, userId },
-            }))
-            : [],
+          connectOrCreate: (genres ?? []).map((genreName: string) => ({
+            where: { userId_name: { userId, name: genreName } },
+            create: { name: genreName, userId },
+          })),
         },
         tags: {
-          connectOrCreate: tags
-            ?.map((tagName: string) => ({
-              where: { userId_name: { userId, name: tagName } },
-              create: { name: tagName, userId },
-            }))
-            : [],
+          connectOrCreate: (tags ?? []).map((tagName: string) => ({
+            where: { userId_name: { userId, name: tagName } },
+            create: { name: tagName, userId },
+          })),
         },
       },
       include: {
