@@ -1,14 +1,6 @@
-<<<<<<< HEAD
-<<<<<<< herbert
-📚 Book Reading Log
+Book Reading Log
 A simple, clean, and incredibly fast web application for book lovers to track their reading journey. Log progress page-by-page, organize your library with genres and tags, visualize your reading habits, and export your data — all without a single page reload.
- Stack 
 
- Stack 
-
- Stack 
-
- Stack 
 
  Stack 
 ✨ Features
@@ -22,6 +14,7 @@ A simple, clean, and incredibly fast web application for book lovers to track th
 📤 Import / Export — Back up your entire library as PDF or Word (.docx). Restore from structured documents.
 📱 Fully Responsive — 4-column desktop grid, 2-column tablet, single-column mobile — built with Tailwind CSS.
 🛠️ Tech Stack
+
 Table
 Layer	Technology
 Framework	Next.js 15 (App Router)
@@ -120,40 +113,3 @@ book-reading-log/
 ├── tailwind.config.ts
 ├── tsconfig.json
 └── package.json
-🎯 Core User Flow
-Register / Login → Secure session created
-Dashboard → View stats, filter by status, search your library
-Add Book → Fill title, author, total pages, pick genres/tags
-Track Progress → Click + / - on the card to log pages instantly
-View Detail → Click any book for full view, notes, and inline editing
-Export Data → Head to Settings → download your library as PDF or Word
-🧠 Business Logic Highlights
-Table
-Rule	Behavior
-Bottom Limit	- button disables when pages_read = 0
-Top Limit	Rejects pages_read > total_pages with clear error
-Auto-Complete	Status flips to finished when pages_read == total_pages
-Accidental Click Protection	Can step back from finished; status reverts to reading
-Progress Calculation	progress_pct = round((pages_read / total_pages) * 100)
-Color Thresholds	Red (0–33%) → Yellow (34–66%) → Blue (67–99%) → Green (100%)
-🗄️ Database Schema Overview
-plain
-Copy
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│    User     │────<│    Book     │>────│    Genre    │
-├─────────────┤     ├─────────────┤     ├─────────────┤
-│ id          │     │ id          │     │ id          │
-│ email       │     │ user_id     │     │ name        │
-│ passwordHash│     │ title       │     │ isPredefined│
-│ name        │     │ author      │     │ user_id     │
-└─────────────┘     │ status      │     └─────────────┘
-                    │ total_pages │
-                    │ pages_read  │     ┌─────────────┐
-                    │ progress_pct│     │    Tag      │
-                    │ notes       │     ├─────────────┤
-                    │ started_at  │     │ id          │
-                    │ finished_at │     │ name        │
-                    │ dropped_at  │     │ isPredefined│
-                    │ created_at  │     │ user_id     │
-                    └─────────────┘     └─────────────┘
-
