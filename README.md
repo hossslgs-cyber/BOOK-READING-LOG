@@ -1,4 +1,4 @@
-📚 Book Reading Log
+readme_simple = """# 📚 Book Reading Log
 
 A simple web app to track the books you're reading. Log your progress page-by-page, organize with genres and tags, and see your reading stats at a glance.
 
