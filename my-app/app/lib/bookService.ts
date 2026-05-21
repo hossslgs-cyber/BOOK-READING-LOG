@@ -106,17 +106,8 @@ function applyBusinessLogic(
   // updates pages_read or changes status back to reading, 
   // the system clears the finished_at / dropped_at timestamps 
   // and resumes normal tracking.
-  if (
-    (processedBook.status === "FINISHED" || processedBook.status === "DROPPED") &&
-    processedBook.status !== book.status // Status changed to something else
-  ) {
-    if (processedBook.status === "READING") {
-      processedBook.finishedAt = null;
-      processedBook.droppedAt = null;
-    }
-  }
   
-  // Additional status reversion: if status changed to reading from finished/dropped
+  // Status reversion: if status changed to reading from finished/dropped
   if (
     processedBook.status === "READING" &&
     (book.status === "FINISHED" || book.status === "DROPPED")

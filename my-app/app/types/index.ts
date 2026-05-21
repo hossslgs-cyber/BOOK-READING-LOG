@@ -29,6 +29,19 @@ export interface BookStatusCounts {
   reading: number;
   finished: number;
   dropped: number;
+  finishedThisYear: number;
+  totalPagesRead: number;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface ImportResult {
+  success: number;
+  errors: string[];
 }
 
 export interface PaginationParams {

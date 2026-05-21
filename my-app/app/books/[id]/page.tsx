@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { Book } from "@/types";
 import { updateBook, deleteBook } from "@/lib/bookService";
@@ -182,7 +184,7 @@ export default function BookDetail({ params }: BookDetailProps) {
                     }}
                     disabled={
                       isUpdating ||
-                      (book.totalPages && book.pagesRead >= book.totalPages)
+                      (book.totalPages != null && book.pagesRead >= book.totalPages)
                     }
                     className={`ml-3 h-9 w-9 flex items-center justify-center rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
@@ -206,7 +208,7 @@ export default function BookDetail({ params }: BookDetailProps) {
                 ) : (
                   <p className="mt-2 text-xs text-zinc-500">
                     Total pages not set - use manual progress tracking
-                  </>
+                  </p>
                 )}
               </div>
 
@@ -287,6 +289,6 @@ export default function BookDetail({ params }: BookDetailProps) {
           </div>
         </div>
       </div>
+    </div>
     );
   }
-}

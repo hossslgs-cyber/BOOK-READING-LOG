@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Book } from "@/types";
 
@@ -130,7 +132,7 @@ export default function BookForm({
     const bookData = {
       title: title.trim(),
       author: author.trim(),
-      totalPages: totalPages === "" ? null : totalPages ?? undefined,
+      totalPages: totalPages ?? undefined,
       pagesRead: pagesRead ?? 0,
       status,
       notes: notes.trim() || undefined,
@@ -189,7 +191,8 @@ export default function BookForm({
             value={totalPages ?? ""}
             onChange={(e) => {
               const value = e.target.value;
-              setTotalPages(value === "" ? null : parseInt(value) || undefined);
+              const parsed = parseInt(value, 10);
+              setTotalPages(value === "" ? null : isNaN(parsed) ? null : parsed);
             }}
             className="w-full px-4 py-2 border border-input rounded-md bg-white focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
             placeholder="Leave blank for manual progress"
@@ -206,7 +209,8 @@ export default function BookForm({
             value={pagesRead ?? ""}
             onChange={(e) => {
               const value = e.target.value;
-              setPagesRead(value === "" ? null : parseInt(value) || undefined);
+              const parsed = parseInt(value, 10);
+              setPagesRead(value === "" ? 0 : isNaN(parsed) ? 0 : parsed);
             }}
             className="w-full px-4 py-2 border border-input rounded-md bg-white focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
           />
