@@ -1,0 +1,461 @@
+
+prd_content_moderation = """# Product Requirements Document (PRD)
+## Content Moderation & Safety System
+### Book Reading Log — Feature Extension v1.0
+**Date:** 2026-05-20  
+**Author:** Herbert (Feature Lead)  
+**Branch:** `herbert`  
+**Status:** Ready for Implementation  
+**Priority:** Must Have (Security)
+
+---
+
+## 1. Feature Overview
+
+### 1.1 Purpose
+Protect the Book Reading Log platform from inappropriate, harmful, or explicit content uploaded through the book import feature. Ensure all imported books, covers, and metadata are safe for all users.
+
+### 1.2 Scope
+This PRD covers content moderation for:
+- File uploads (PDF, DOCX, TXT, CSV)
+- Embedded images within imported files
+- Text content (descriptions, titles, notes)
+- Book cover image uploads
+
+### 1.3 Design Principle
+**"Reject early, explain clearly, log everything."** — Block bad content at the first checkpoint, tell the user exactly why, and keep records for admin review.
+
+---
+
+## 2. User Stories
+
+| ID | Story | Priority |
+|----|-------|----------|
+| US-MOD-01 | As an admin, I want inappropriate file uploads blocked so the platform stays safe. | Must Have |
+| US-MOD-02 | As a user, I want clear error messages when my import is rejected so I understand what went wrong. | Must Have |
+| US-MOD-03 | As an admin, I want all moderation actions logged so I can review and adjust filters. | Must Have |
+| US-MOD-04 | As a user, I want my legitimate book imports to never be falsely blocked so the system is reliable. | Should Have |
+| US-MOD-05 | As an admin, I want to customize blocked keywords without redeploying so moderation stays current. | Could Have |
+
+---
+
+## 3. Functional Requirements
+
+### 3.1 File Validation (First Checkpoint)
+
+**FR-FV-01:** Only allow these file types for import:
+- `application/pdf` (PDF)
+- `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (DOCX)
+- `text/plain` (TXT)
+- `text/csv` (CSV)
+
+**FR-FV-02:** Reject with error: *"Invalid file type. Only PDF, DOCX, TXT, and CSV are allowed."*
+
+**FR-FV-03:** Maximum file size: **10MB**.
+
+**FR-FV-04:** Reject with error: *"File too large. Maximum size is 10MB."*
+
+**FR-FV-05:** Block executable files by checking magic numbers/headers, not just file extensions.
+
+**FR-FV-06:** If file type cannot be determined, reject with: *"Unable to verify file type. Please try again."*
+
+### 3.2 Text Content Scanning (Second Checkpoint)
+
+**FR-TS-01:** Extract text from all supported file types:
+- PDF: Use `pdf-parse` library
+- DOCX: Use `mammoth` library
+- TXT/CSV: Read directly
+
+**FR-TS-02:** Scan extracted text against a blocked keyword list.
+
+**FR-TS-03:** Default blocked categories and keywords:
+
+| Category | Example Keywords |
+|----------|-----------------|
+| Pornography | porn, xxx, adult content, explicit, nsfw, nude |
+| Hate Speech | racial slurs, hate speech patterns |
+| Violence | gore, torture, kill instructions |
+| Illegal | drugs, weapons trafficking, fraud |
+| Spam | excessive links, suspicious patterns |
+
+**FR-TS-04:** Reject with specific message: *"Import rejected: [Category] content detected in file."*
+
+**FR-TS-05:** Keyword matching must be:
+- Case-insensitive
+- Match whole words or substrings (configurable)
+- Support multi-language detection (future)
+
+**FR-TS-06:** Sanitize allowed text:
+- Strip all HTML tags (`<script>`, `<iframe>`, etc.)
+- Strip JavaScript event handlers (`onclick=`, `onerror=`)
+- Normalize Unicode characters (prevent homograph attacks)
+- Trim whitespace, limit to 2000 characters per field
+
+### 3.3 Image Content Scanning (Third Checkpoint)
+
+**FR-IS-01:** If imported files contain embedded images (PDF, DOCX), extract and scan each image.
+
+**FR-IS-02:** Use **Google Vision API SafeSearch** for image analysis.
+
+**FR-IS-03:** Detection categories:
+
+| Category | Action Threshold |
+|----------|-----------------|
+| Adult | Reject if `LIKELY` or `VERY_LIKELY` |
+| Violence | Reject if `LIKELY` or `VERY_LIKELY` |
+| Racy | Reject if `VERY_LIKELY` |
+| Spoof | Flag for review |
+
+**FR-IS-04:** SafeSearch scores:
+- `VERY_UNLIKELY`, `UNLIKELY` → Pass
+- `POSSIBLE` → Flag for manual review, allow import
+- `LIKELY`, `VERY_LIKELY` → Reject
+
+**FR-IS-05:** Reject with error: *"Import rejected: Inappropriate image content detected."*
+
+**FR-IS-06:** If Google Vision API is unavailable, skip image scan and flag for manual review (don't block import).
+
+**FR-IS-07:** For book cover uploads (direct image upload), apply the same SafeSearch scan.
+
+### 3.4 Rate Limiting (Abuse Prevention)
+
+**FR-RL-01:** Maximum **5 imports per user per hour**.
+
+**FR-RL-02:** Use **Upstash Redis** or in-memory store for rate limiting.
+
+**FR-RL-03:** If limit exceeded, return: *"Import limit reached (5 per hour). Please try again later."*
+
+**FR-RL-04:** Rate limit counter resets after 1 hour from first import attempt.
+
+### 3.5 AI-Powered Text Moderation (Optional Enhancement)
+
+**FR-AI-01:** Use **Google Gemini** to analyze text that bypasses keyword filters.
+
+**FR-AI-02:** Send extracted text to Gemini with prompt:
+```
+Analyze this book import text for inappropriate content.
+Categories: pornography, hate speech, violence, illegal activity.
+Return ONLY a JSON object: {"safe": true/false, "reason": "...", "category": "..."}
+```
+
+**FR-AI-03:** Only run if `GEMINI_API_KEY` is available. If not, skip AI moderation (keyword scan still applies).
+
+**FR-AI-04:** AI moderation runs AFTER keyword scan as a secondary filter.
+
+### 3.6 Logging & Audit Trail
+
+**FR-LOG-01:** Log every import attempt to the database.
+
+**FR-LOG-02:** Log entry fields:
+- User ID
+- File name
+- File type
+- File size
+- Status: `success`, `rejected`, `error`
+- Rejection reason (if applicable)
+- Moderation category (if rejected)
+- Timestamp
+
+**FR-LOG-03:** Admin dashboard (future) can query logs by:
+- Date range
+- User
+- Status
+- Rejection category
+
+**FR-LOG-04:** Retain logs for **90 days**.
+
+---
+
+## 4. Non-Functional Requirements
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-MOD-01 | File validation speed | < 100ms |
+| NFR-MOD-02 | Text extraction + scan | < 500ms for files < 5MB |
+| NFR-MOD-03 | Image scan (Google Vision) | < 2s per image |
+| NFR-MOD-04 | Total import processing | < 5s end-to-end |
+| NFR-MOD-05 | False positive rate | < 2% (legitimate imports blocked) |
+| NFR-MOD-06 | Uptime | Moderation system must not block imports if scan services fail |
+| NFR-MOD-07 | Privacy | Never store user file content, only metadata and scan results |
+
+---
+
+## 5. UI/UX Requirements
+
+### 5.1 Error Messages
+
+| Scenario | User Message |
+|----------|-------------|
+| Invalid file type | "Invalid file type. Only PDF, DOCX, TXT, and CSV are allowed." |
+| File too large | "File too large. Maximum size is 10MB." |
+| Explicit text detected | "Import rejected: Inappropriate content detected in file." |
+| Explicit image detected | "Import rejected: Inappropriate image content detected." |
+| Rate limit exceeded | "Import limit reached (5 per hour). Please try again later." |
+| Scan service down | "Unable to scan file right now. Please try again later." |
+| Generic error | "Something went wrong. Please try again or contact support." |
+
+### 5.2 Import Flow UI
+
+```
+User clicks "Import Books"
+│
+├─→ File picker opens
+│
+├─→ User selects file
+│
+├─→ Show progress: "Validating file..."
+│   ├─→ FAIL: Show error message, stop
+│   └─→ PASS: Continue
+│
+├─→ Show progress: "Scanning content..."
+│   ├─→ FAIL: Show specific error, log rejection
+│   └─→ PASS: Continue
+│
+├─→ Show progress: "Extracting books..."
+│
+└─→ Success: "X books imported successfully!"
+```
+
+### 5.3 Design System Compliance
+- Use existing toast notifications for errors
+- Use existing progress/skeleton loaders
+- Error states: red border, clear icon, actionable message
+
+---
+
+## 6. Technical Architecture
+
+### 6.1 New Files to Create
+
+```
+my-app/
+├── lib/
+│   ├── content-moderation.ts       # Main moderation orchestrator
+│   ├── file-validator.ts          # File type/size validation
+│   ├── text-scanner.ts            # Text extraction + keyword scanning
+│   ├── image-scanner.ts           # Google Vision SafeSearch integration
+│   └── rate-limiter.ts            # Import rate limiting
+├── app/
+│   ├── api/
+│   │   └── import/
+│   │       └── route.ts           # MODIFIED: Add moderation pipeline
+│   └── actions/
+│       └── import.ts              # MODIFIED: Add validation before save
+└── prisma/
+    └── schema.prisma              # MODIFIED: Add ImportLog model
+```
+
+### 6.2 API Integrations
+
+#### Google Vision API SafeSearch (Free Tier)
+- **Endpoint:** `https://vision.googleapis.com/v1/images:annotate`
+- **Free quota:** 1,000 requests/month
+- **What it detects:** Adult, violence, racy, spoof content
+- **Key required:** Google Cloud Console → Enable Vision API → Create API Key
+
+#### Google Gemini API (Optional AI Moderation)
+- **Model:** `gemini-1.5-flash`
+- **Free quota:** 60 requests/minute
+- **Used for:** Secondary text analysis when keyword scan is inconclusive
+- **Key required:** Google AI Studio
+
+### 6.3 Database Schema Addition
+
+```prisma
+// Add to my-app/prisma/schema.prisma
+
+model ImportLog {
+  id        String   @id @default(cuid())
+  userId    String
+  fileName  String
+  fileType  String
+  fileSize  Int      // in bytes
+  status    String   // "success", "rejected", "error"
+  reason    String?  // rejection reason
+  category  String?  // "file_type", "size", "text", "image", "rate_limit"
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+```
+
+### 6.4 Data Flow
+
+```
+User uploads file
+│
+├─→ 1. FILE VALIDATOR
+│   ├─→ Check file type (magic numbers)
+│   ├─→ Check file size (< 10MB)
+│   └─→ FAIL → Log rejection, return error
+│
+├─→ 2. RATE LIMITER
+│   ├─→ Check imports/hour for user
+│   └─→ FAIL → Log rejection, return error
+│
+├─→ 3. TEXT SCANNER
+│   ├─→ Extract text from PDF/DOCX/TXT/CSV
+│   ├─→ Scan against blocked keywords
+│   ├─→ Sanitize HTML/JS
+│   └─→ FAIL → Log rejection, return error
+│
+├─→ 4. IMAGE SCANNER (if applicable)
+│   ├─→ Extract images from PDF/DOCX
+│   ├─→ Send to Google Vision SafeSearch
+│   └─→ FAIL → Log rejection, return error
+│
+├─→ 5. AI MODERATION (optional)
+│   ├─→ Send text to Gemini for secondary scan
+│   └─→ FAIL → Log rejection, return error
+│
+├─→ 6. PARSE & SAVE
+│   ├─→ Parse structured book data
+│   ├─→ Save to database
+│   └─→ Log success
+│
+└─→ Return success to user
+```
+
+---
+
+## 7. Implementation Order
+
+### Phase 1: Foundation (Day 1)
+1. Add `ImportLog` model to `prisma/schema.prisma`
+2. Run `npx prisma migrate dev --name add_import_logs`
+3. Create `lib/file-validator.ts`
+4. Create `lib/rate-limiter.ts`
+
+### Phase 2: Text Moderation (Day 1-2)
+1. Install dependencies: `pdf-parse`, `mammoth`
+2. Create `lib/text-scanner.ts`
+3. Build blocked keyword list
+4. Test with sample files
+
+### Phase 3: Image Moderation (Day 2)
+1. Set up Google Vision API key
+2. Create `lib/image-scanner.ts`
+3. Test with sample images
+
+### Phase 4: Integration (Day 2-3)
+1. Create `lib/content-moderation.ts` (orchestrator)
+2. Modify `app/api/import/route.ts` to use moderation pipeline
+3. Modify `app/actions/import.ts` to validate before save
+4. Wire up error messages to frontend
+
+### Phase 5: Testing & Polish (Day 3)
+1. Test with clean files (should pass)
+2. Test with explicit content (should block)
+3. Test rate limiting
+4. Verify logs are saved correctly
+5. Add admin view for import logs (optional)
+
+---
+
+## 8. Environment Variables
+
+Add to `my-app/.env`:
+
+```env
+# Google Vision API (for image content scanning)
+GOOGLE_VISION_API_KEY=your_key_here
+
+# Google Gemini API (optional AI text moderation)
+GEMINI_API_KEY=your_key_here
+
+# Upstash Redis (for rate limiting)
+UPSTASH_REDIS_REST_URL=your_url_here
+UPSTASH_REDIS_REST_TOKEN=your_token_here
+```
+
+**Note:** If Upstash is not set up, use in-memory rate limiting as fallback.
+
+---
+
+## 9. API Keys Setup Guide
+
+### Google Vision API Key
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create/select project
+3. Enable **Cloud Vision API**
+4. Go to **Credentials** → **Create API Key**
+5. Restrict key to Vision API only
+6. Copy to `.env`
+
+### Google Gemini API Key
+1. Go to [Google AI Studio](https://aistudio.google.com/)
+2. Click **Get API Key**
+3. Create new key
+4. Copy to `.env`
+
+---
+
+## 10. Error Handling & Edge Cases
+
+| Scenario | Handling |
+|----------|----------|
+| File type spoofing (renamed .exe to .pdf) | Check magic numbers, not just extension |
+| Corrupted PDF/DOCX | Catch extraction error, return "Unable to read file" |
+| Google Vision API down | Skip image scan, flag for review, allow import |
+| Gemini API down | Skip AI moderation, rely on keyword scan only |
+| Rate limiter down | Allow import (fail open for UX) |
+| Zero-byte file | Reject as "Invalid file" |
+| Password-protected PDF | Reject as "Unable to read file" |
+
+---
+
+## 11. Acceptance Criteria
+
+**AC-MOD-01:** Given a user uploads a PDF with explicit text, when the import runs, the file is rejected and the user sees a clear error message.
+
+**AC-MOD-02:** Given a user uploads a DOCX with an inappropriate embedded image, when the import runs, the file is rejected before any book data is saved.
+
+**AC-MOD-03:** Given a user uploads 6 files in one hour, when the 6th import runs, it is rejected with a rate limit message.
+
+**AC-MOD-04:** Given Google Vision API is unavailable, when a user imports a file with images, the import proceeds with a flag for manual review.
+
+**AC-MOD-05:** Given a user uploads a valid, clean PDF, when the import runs, all moderation checks pass and books are saved successfully.
+
+**AC-MOD-06:** Given any import attempt, when processed, a log entry is created with user ID, file name, status, and timestamp.
+
+---
+
+## 12. Future Enhancements (Out of Scope)
+
+- Machine learning model trained on platform-specific content
+- Community reporting system (users flag inappropriate books)
+- Real-time admin dashboard for moderation logs
+- Automatic appeals process for false positives
+- Multi-language keyword support
+- Image hash database for known inappropriate content
+- Integration with third-party moderation services (AWS Rekognition, Azure Content Moderator)
+
+---
+
+## 13. Notes for Developer
+
+- **Fail gracefully:** If any scan service is down, don't block imports — log and flag for review
+- **Performance:** Run file validation and rate limiting BEFORE expensive text/image scans
+- **Privacy:** Don't store file contents, only metadata and scan results
+- **Testing:** Create a test suite with clean files, explicit files, edge cases
+- **Configurability:** Make blocked keyword list easy to update (JSON file or database table)
+- **Logging:** Always log rejections — helps tune false positives over time
+
+---
+
+*Document Version: 1.0*  
+*Generated for: VS Code / Cursor Implementation*  
+*Branch: herbert*
+"""
+
+# Save to output directory
+with open('/mnt/agents/output/PRD_Content_Moderation.md', 'w', encoding='utf-8') as f:
+    f.write(prd_content_moderation)
+
+print("Content Moderation PRD saved successfully!")
+print(f"Total lines: {len(prd_content_moderation.splitlines())}")
+print(f"Total characters: {len(prd_content_moderation)}")
